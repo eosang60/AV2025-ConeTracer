@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<launch>
+    <arg name="MotorTopic" default="/fsds/control_command"/>
+    <arg name="MaxAccel" default="0.33"/>
+    <arg name="MinAccel" default="0.38"/>
+
+    <node name="motor_ctr_node" pkg="ev_controller" type="motor_ctr_node" output="screen">
+        <param name="BLDC_HOST" value="192.168.3.2" />
+        <param name="AGNI_HOST" value="192.168.2.2" />
+        <param name="PORT" value="7000" />
+
+        <param name="AccelNorm" type="bool" value="false" />
+        <param name="AccelNormValue" value="1" />
+
+        <param name="SteeringNorm" type="bool" value="true" />
+        <param name="SteeringNormValue" value="135" />
+
+        <param name="SubMotor" type="bool" value="True" />
+        <param name="SubMotorTopic" value="/fsds/control_command" />
+        <param name="SubBrakeFlag" type="bool" value="false" />
+        <param name="SubBrakeFlagTopic" value="/brake_flag" />
+
+        <param name="MinAccel" type="double" value="$(arg MinAccel)"/>
+        <param name="MaxAccel" type="double" value="$(arg MaxAccel)"/>
+    </node>
+
+</launch>

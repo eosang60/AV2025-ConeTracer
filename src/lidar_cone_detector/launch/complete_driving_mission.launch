@@ -1,0 +1,93 @@
+<launch>
+  <!-- LiDAR -->
+  <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch" />
+
+  <!-- Cone Detector + Path Planning-->
+  <include file="$(find lidar_cone_detector)/launch/angular_cone_detector.launch">
+    <arg name="rosbag" value="false"/>
+    <!-- ENVIROMENT: 탐색 범위 기본 이동 한계 -->
+    <param name="cone_distance" type="double" value="3.5"/>          <!-- 중앙점 기준 다음 콘까지 예상 간격(m) -->
+    <param name="cone_distance_threshold" type="double" value="0.5"/> <!-- 간격 허용 오차(m) -->
+    <param name="distance" type="double" value="8.0"/>                <!-- KNN 후보 탐색 반경(m) -->
+
+    <!-- ROI -->
+    <param name="min_x" type="double" value="0.0"/>
+    <param name="max_x" type="double" value="40.0"/>
+    <param name="min_z" type="double" value="-1.0"/>
+    <param name="max_z" type="double" value="0.0"/>
+
+    <!-- STOP CONE DETECT -->
+    <param name="stop_cone_detect" type="bool" value="false"/>            <!-- 정지 콘 감지 사용 -->
+    <param name="stop_cone_detect_height" type="double" value="270"/>    <!-- 정지 콘 판단 높이 임계값(px 또는 입력 단위) -->
+
+    <!-- GROUND REMOVER -->
+    <param name="ground_remover" type="bool" value="true"/>           <!-- 지면 제거 사용 -->
+    <param name="ground_remover_iter" type="int" value="500"/>        <!-- RANSAC 반복 횟수 -->
+    <param name="ground_remover_threshold" type="double" value="0.1"/> <!-- 지면 모델 거리 임계(m) -->
+
+    <!-- VOXELIZATION -->
+    <param name="voxelization" type="bool" value="true"/>                <!-- 다운샘플 사용 -->
+    <param name="voxelization_threshold" type="double" value="0.01"/>    <!-- 보xel 크기(m) -->
+
+    <!-- EUDCLIDEAN CLUSTERING -->
+    <param name="eudclidean_distance_threshold" type="double" value="0.3"/> <!-- 클러스터링 허용 거리(m) -->
+    <param name="eudclidean_min_cluster" type="int" value="3"/>            <!-- 클러스터 최소 포인트 수 -->
+    <param name="eudclidean_max_cluster" type="int" value="1000"/>         <!-- 클러스터 최대 포인트 수 -->
+
+    <!-- SIDE-FOLLOW TRACKING (신규): 첫 중앙점 이후 좌/우 각각 KNN 추적 -->
+    <param name="side_follow_mode" type="bool" value="true"/>             <!-- true면 신규 좌/우 추적 활성화 -->
+    <param name="k_left" type="int" value="8"/>                            <!-- 좌측 KNN 개수 -->
+    <param name="k_right" type="int" value="8"/>                           <!-- 우측 KNN 개수 -->
+    <param name="theta_gate_deg" type="double" value="60.0"/>             <!-- 진행방향 대비 후보 각도 제한(도) -->
+    <param name="step_min" type="double" value="0.3"/>                    <!-- 이전 좌/우에서 다음 후보까지 최소 이동(m) -->
+    <param name="step_max" type="double" value="3.0"/>                    <!-- 이전 좌/우에서 다음 후보까지 최대 이동(m) -->
+    <param name="max_miss" type="int" value="3"/>                         <!-- 한쪽 미검출 연속 허용 횟수 -->
+    <param name="lane_width_est" type="double" value="4.0"/>              <!-- 누락 시 외삽에 쓰는 차선 폭 추정값(m) -->
+  </include>
+
+  <include file="$(find midpoint_tracer)/launch/midpoint_tracer.launch">
+    <!-- ===== 차량/경로 파라미터 ===== -->
+    <!-- 축거[m]. 커질수록 같은 Ld에서 조향 감소 -->
+    <arg name="wheelbase"        default="1.3"/>
+    <!-- 기본 룩어헤드[m]. 직선 안정성↑, 코너 응답↓ -->
+    <arg name="base_lookahead"   default="6.0"/>
+    <!-- 룩어헤드 하한/상한[m]. 너무 작으면 진동, 너무 크면 언더스티어 -->
+    <arg name="min_lookahead"    default="6.0"/>
+    <arg name="max_lookahead"    default="6.0"/>
+    <!-- 조향 제한[rad]. 차량 인터페이스 부호가 반대면 코드에서 부호 반전 -->
+    <arg name="max_steer_rad"    default="1.0"/>
+    <!-- 스플라인 샘플 간격[m]. 작을수록 정밀↑ 연산↑ -->
+    <arg name="sampling_ds"      default="0.2"/>
+
+    <!-- ===== 적응 룩어헤드(곡률 기반) ===== -->
+    <!-- true면 곡률로 Ld를 고정점 반복으로 조정 -->
+    <arg name="use_adaptive_lookahead" default="true"/>
+    <!-- 곡률 민감도. 큼→코너에서 Ld 더 축소 -->
+    <arg name="kappa_gain"             default="6.0"/>
+    <!-- 가중 하한/상한. 0.3~1.0 권장 -->
+    <arg name="weight_min"             default="0.3"/>
+    <arg name="weight_max"             default="1.0"/>
+    <!-- 반복 수, 수렴 임계[m], 감쇠(0~1), 보수 샘플 수(0이면 목표점 κ 사용) -->
+    <arg name="max_iter"               default="6"/>
+    <arg name="tol"                    default="0.03"/>
+    <arg name="damping"                default="0.6"/>
+    <arg name="conservative_samples"   default="3"/>
+
+    <!-- ===== 곡률 기반 스로틀 ===== -->
+    <!-- 스로틀 하한/상한[0..1] -->
+    <arg name="min_throttle" default="0.30"/>
+    <arg name="max_throttle" default="0.33"/>
+    <!-- 곡률 포화[1/m]. |κ|>=kappa_sat이면 min_throttle로 감속 -->
+    <arg name="kappa_sat"    default="0.35"/>
+  </include>
+
+  <!-- Motor Control -->
+  <include file="$(find ev_controller)/launch/ev_motor_controller.launch">
+    <!-- 졸작용 -->
+    <arg name="MinAccel" value="0.31" />
+    <arg name="MaxAccel" value="0.33" />
+
+    <param name="SteeringNorm" type="bool" value="true" />
+    <param name="SteeringNormValue" type="double" value="60" />
+  </include>
+</launch>

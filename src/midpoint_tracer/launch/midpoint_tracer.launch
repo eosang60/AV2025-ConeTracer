@@ -1,0 +1,70 @@
+<launch>
+  <!-- ===== 토픽 설정 ===== -->
+  <!-- 중앙점 PoseArray 구독 토픽 -->
+  <arg name="sub_midpoint_topic" default="/mid_point"/>
+  <!-- 제어 명령 퍼블리시 토픽 -->
+  <arg name="pub_cmd_topic"      default="/fsds/control_command"/>
+
+  <!-- ===== 차량/경로 파라미터 ===== -->
+  <!-- 축거[m]. 커질수록 같은 Ld에서 조향 감소 -->
+  <arg name="wheelbase"        default="1.3"/>
+  <!-- 기본 룩어헤드[m]. 직선 안정성↑, 코너 응답↓ -->
+  <arg name="base_lookahead"   default="6.0"/>
+  <!-- 룩어헤드 하한/상한[m]. 너무 작으면 진동, 너무 크면 언더스티어 -->
+  <arg name="min_lookahead"    default="6.0"/>
+  <arg name="max_lookahead"    default="6.0"/>
+  <!-- 조향 제한[rad]. 차량 인터페이스 부호가 반대면 코드에서 부호 반전 -->
+  <arg name="max_steer_rad"    default="1.0"/>
+  <!-- 스플라인 샘플 간격[m]. 작을수록 정밀↑ 연산↑ -->
+  <arg name="sampling_ds"      default="0.2"/>
+
+  <!-- ===== 적응 룩어헤드(곡률 기반) ===== -->
+  <!-- true면 곡률로 Ld를 고정점 반복으로 조정 -->
+  <arg name="use_adaptive_lookahead" default="true"/>
+  <!-- 곡률 민감도. 큼→코너에서 Ld 더 축소 -->
+  <arg name="kappa_gain"             default="0.5"/>
+  <!-- 가중 하한/상한. 0.3~1.0 권장 -->
+  <arg name="weight_min"             default="0.3"/>
+  <arg name="weight_max"             default="1.0"/>
+  <!-- 반복 수, 수렴 임계[m], 감쇠(0~1), 보수 샘플 수(0이면 목표점 κ 사용) -->
+  <arg name="max_iter"               default="6"/>
+  <arg name="tol"                    default="0.03"/>
+  <arg name="damping"                default="0.6"/>
+  <arg name="conservative_samples"   default="3"/>
+
+  <!-- ===== 곡률 기반 스로틀 ===== -->
+  <!-- 스로틀 하한/상한[0..1] -->
+  <arg name="min_throttle" default="0.30"/>
+  <arg name="max_throttle" default="0.33"/>
+  <!-- 곡률 포화[1/m]. |κ|>=kappa_sat이면 min_throttle로 감속 -->
+  <arg name="kappa_sat"    default="0.35"/>
+
+  <node pkg="midpoint_tracer" type="midpoint_tracer_node" name="midpoint_tracer" output="screen">
+    <!-- 토픽 파라미터 주입 -->
+    <param name="/midpoint_tracer/sub_midpoint_topic" value="$(arg sub_midpoint_topic)"/>
+    <param name="/midpoint_tracer/pub_cmd_topic"      value="$(arg pub_cmd_topic)"/>
+
+    <!-- 차량/경로 -->
+    <param name="/midpoint_tracer/wheelbase"       value="$(arg wheelbase)"/>
+    <param name="/midpoint_tracer/base_lookahead"  value="$(arg base_lookahead)"/>
+    <param name="/midpoint_tracer/min_lookahead"   value="$(arg min_lookahead)"/>
+    <param name="/midpoint_tracer/max_lookahead"   value="$(arg max_lookahead)"/>
+    <param name="/midpoint_tracer/max_steer_rad"   value="$(arg max_steer_rad)"/>
+    <param name="/midpoint_tracer/sampling_ds"     value="$(arg sampling_ds)"/>
+
+    <!-- 적응 룩어헤드 -->
+    <param name="/midpoint_tracer/use_adaptive_lookahead" value="$(arg use_adaptive_lookahead)"/>
+    <param name="/midpoint_tracer/kappa_gain"             value="$(arg kappa_gain)"/>
+    <param name="/midpoint_tracer/weight_min"             value="$(arg weight_min)"/>
+    <param name="/midpoint_tracer/weight_max"             value="$(arg weight_max)"/>
+    <param name="/midpoint_tracer/max_iter"               value="$(arg max_iter)"/>
+    <param name="/midpoint_tracer/tol"                    value="$(arg tol)"/>
+    <param name="/midpoint_tracer/damping"                value="$(arg damping)"/>
+    <param name="/midpoint_tracer/conservative_samples"   value="$(arg conservative_samples)"/>
+
+    <!-- 곡률 기반 스로틀 -->
+    <param name="/midpoint_tracer/min_throttle" value="$(arg min_throttle)"/>
+    <param name="/midpoint_tracer/max_throttle" value="$(arg max_throttle)"/>
+    <param name="/midpoint_tracer/kappa_sat"    value="$(arg kappa_sat)"/>
+  </node>
+</launch>

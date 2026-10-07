@@ -1,0 +1,25 @@
+# catkin outputs
+build/
+devel/
+install/
+log/
+logs/
+
+# local recordings and model weights
+*.bag
+*.pcd
+*.pt
+*.onnx
+
+# local settings
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+__pycache__/
+*.py[cod]
+*.o
+*.so
+*.a
+*.log
